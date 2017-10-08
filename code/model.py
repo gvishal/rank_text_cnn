@@ -1,4 +1,8 @@
 # coding: utf-8
+'''Model utils'''
+import gensim
+from gensim.models.keyedvectors import KeyedVectors
+
 import keras
 from keras import regularizers
 from keras.layers import Dense, Dropout
@@ -6,16 +10,47 @@ from keras.layers import Input, Embedding
 from keras.layers import Conv1D, GlobalMaxPooling1D, MaxPooling1D
 from keras.layers.merge import Concatenate, Dot
 from keras.models import Sequential, Model
+
 import numpy as np
 
-embed_dim = 50
-max_ques_len = 20
-vocab_size = 1000
-max_ans_len = 40
-embedding = np.random.rand(1000, 50)
+# embed_dim = 50
+# max_ques_len = 20
+# vocab_size = 1000
+# max_ans_len = 40
+# embedding = np.random.rand(1000, 50)
 
 
-def CNN_Model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
+def load_embeddings(embedding_file, vocab):
+    '''Load pre-learnt word embeddings.
+    Return: embedding: embedding matrix with dim |vocab| x dim
+            dim: dimension of the embeddings
+            rand_count: number of words not in trained embedding
+    '''
+    word_vectors = KeyedVectors.load_word2vec_format(
+        embedding_file, binary=True)
+    # Need to use the word vectors to make embeddings matrix
+    # Get dimension for any word embedding
+    dim = word_vectors['apple'].shape[0]
+    
+    # Initialize an embedding of |vocab| x dim
+    # word -> embedding
+    embedding = np.zeroes((len(vocab, dim)))
+    # Take random values
+    rand_vec = np.random.uniform(-0.25, 0.25, dim)
+    # Count of words not having representations in our embedding file
+    rand_count = 0
+
+    for key, value in vocab.iteritems():
+        embedding[value] = word_vectors.get(key, rand_count)
+        if key not in word_vectors:
+            rand_count += 1
+
+    print 'Number of words not in trained embedding: %d' %(rand_count)
+    return embedding, dim, rand_count
+
+
+def cnn_model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
+    '''Neural architecture as mentioned in the original paper.'''
     # Prepare layers for Question
     input_q = Input(shape=(max_ques_len,))
     # print input_q.name
@@ -23,7 +58,7 @@ def CNN_Model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
     embed_q = Embedding(input_dim=vocab_size, output_dim=embed_dim,
                         input_length=max_ques_len,
                         weights=[embedding], trainable=False)(input_q)
-    # Padding means, if input size is 32x32, output will also be 32x32, i.e, 
+    # Padding means, if input size is 32x32, output will also be 32x32, i.e,
     # the dimensions will not reduce
     conv_q = Conv1D(filters=100, kernel_size=5, strides=1, padding='same',
                     activation='relu',
@@ -81,9 +116,9 @@ def CNN_Model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
 
 
 def main():
-    CNN_Model(50, 33, 40, 5000, np.random.rand(5000, 50))
+    '''Main'''
+    cnn_model(50, 33, 40, 5000, np.random.rand(5000, 50))
 
 
 if __name__ == '__main__':
     main()
-

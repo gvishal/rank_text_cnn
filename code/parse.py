@@ -10,6 +10,8 @@ from collections import defaultdict
 import json
 import pdb
 
+import sys
+sys.path.insert(0, '../')
 from rank_text_cnn import config
 
 
@@ -159,7 +161,7 @@ def gen_vocab(data):
                vocab_idx += 1
 
   vocab['UNK'] = len(vocab)
-  f = open('vocab.json', 'w')
+  f = open(config.OUTPUT_PATH + 'vocab.json', 'w')
   json.dump(vocab, f)
   return vocab
 
@@ -188,71 +190,71 @@ if __name__ == '__main__':
   stoplist = None
 
 
-  train = 'jacana-qa-naacl2013-data-results/train.xml'
-  train_all = 'jacana-qa-naacl2013-data-results/train-all.xml'
+  train = config.DATA_PATH + 'jacana-qa-naacl2013-data-results/train.xml'
+  train_all = config.DATA_PATH + 'jacana-qa-naacl2013-data-results/train-all.xml'
   train_files = [train, train_all]
 
   for train in train_files:
     print train
 
-  dev = 'jacana-qa-naacl2013-data-results/dev.xml'
-  test = 'jacana-qa-naacl2013-data-results/test.xml'
+    dev = config.DATA_PATH + 'jacana-qa-naacl2013-data-results/dev.xml'
+    test = config.DATA_PATH + 'jacana-qa-naacl2013-data-results/test.xml'
 
-  train_basename = os.path.basename(train)
-  name, ext = os.path.splitext(train_basename)
-  outdir = '{}'.format(name.upper())
-  print 'outdir', outdir
+    train_basename = os.path.basename(train)
+    name, ext = os.path.splitext(train_basename)
+    outdir = config.OUTPUT_PATH + '{}'.format(name.upper())
+    print 'outdir', outdir
 
-  if not os.path.exists(outdir):
-    os.makedirs(outdir)
+    if not os.path.exists(outdir):
+      os.makedirs(outdir)
 
-  # all_fname = train
-  all_fname = "/tmp/trec-merged.txt"
-  files = ' '.join([train, dev, test])
-  subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
+    # all_fname = train
+    all_fname = "/tmp/trec-merged.txt"
+    files = ' '.join([train, dev, test])
+    subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
 
-  # qids, questions, answers, labels = load_data(all_fname, stoplist)
-  qids, questions, answers, labels = load_data(all_fname)
-  vocab = gen_vocab([questions, answers])
-  max_len_ques = get_maxlen(questions)
-  max_len_ans = get_maxlen(answers)
+    # qids, questions, answers, labels = load_data(all_fname, stoplist)
+    qids, questions, answers, labels = load_data(all_fname)
+    vocab = gen_vocab([questions, answers])
+    max_len_ques = get_maxlen(questions)
+    max_len_ans = get_maxlen(answers)
 
-  # Convert dev and test sets
-  for fname in [train, dev, test]:
-    print fname
-    # qids, questions, answers, labels = load_data(fname, stoplist)
-    qids, questions, answers, labels = load_data(fname)  
-    X_ques = gen_seq(questions, vocab, max_len_ques)
-    X_ans = gen_seq(answers, vocab, max_len_ans)
-    pdb.set_trace()
+    # Convert dev and test sets
+    for fname in [train, dev, test]:
+      print fname
+      # qids, questions, answers, labels = load_data(fname, stoplist)
+      qids, questions, answers, labels = load_data(fname)  
+      X_ques = gen_seq(questions, vocab, max_len_ques)
+      X_ans = gen_seq(answers, vocab, max_len_ans)
+      # pdb.set_trace()
 
-    # overlap_feats = compute_overlap_features(questions, answers, None)
-    # print overlap_feats[:10]
+      # overlap_feats = compute_overlap_features(questions, answers, None)
+      # print overlap_feats[:10]
 
-    qids = np.array(qids)
-    labels = np.array(labels).astype('int32')
+      qids = np.array(qids)
+      labels = np.array(labels).astype('int32')
 
-    _, counts = np.unique(labels, return_counts=True)
-    print counts / float(np.sum(counts))
-    print "questions", len(np.unique(qids))
-    # print "questions", len(qids)
-    print "pairs", len(labels)
+      _, counts = np.unique(labels, return_counts=True)
+      print counts / float(np.sum(counts))
+      print "questions", len(np.unique(qids))
+      # print "questions", len(qids)
+      print "pairs", len(labels)
 
-    # stoplist = None
-    #q_overlap_indices, a_overlap_indices = compute_overlap_idx(questions, answers, stoplist, q_max_sent_length, a_max_sent_length)
-    # print q_overlap_indices[:3]
-    # print a_overlap_indices[:3]
+      # stoplist = None
+      #q_overlap_indices, a_overlap_indices = compute_overlap_idx(questions, answers, stoplist, q_max_sent_length, a_max_sent_length)
+      # print q_overlap_indices[:3]
+      # print a_overlap_indices[:3]
 
-    #questions_idx = convert2indices(questions, alphabet, dummy_word_idx, q_max_sent_length)
-    #answers_idx = convert2indices(answers, alphabet, dummy_word_idx, a_max_sent_length)
-    #print 'answers_idx', answers_idx.shape
-    #pdb.set_trace()
-    basename, _ = os.path.splitext(os.path.basename(fname))
-    np.save(os.path.join(outdir, '{}.qids.npy'.format(basename)), qids)
-    np.save(os.path.join(outdir, '{}.questions.npy'.format(basename)), X_ques)
-    np.save(os.path.join(outdir, '{}.answers.npy'.format(basename)), X_ans)
-    np.save(os.path.join(outdir, '{}.labels.npy'.format(basename)), labels)
-    # np.save(os.path.join(outdir, '{}.overlap_feats.npy'.format(basename)), overlap_feats)
+      #questions_idx = convert2indices(questions, alphabet, dummy_word_idx, q_max_sent_length)
+      #answers_idx = convert2indices(answers, alphabet, dummy_word_idx, a_max_sent_length)
+      #print 'answers_idx', answers_idx.shape
+      #pdb.set_trace()
+      basename, _ = os.path.splitext(os.path.basename(fname))
+      np.save(os.path.join(outdir, '{}.qids.npy'.format(basename)), qids)
+      np.save(os.path.join(outdir, '{}.questions.npy'.format(basename)), X_ques)
+      np.save(os.path.join(outdir, '{}.answers.npy'.format(basename)), X_ans)
+      np.save(os.path.join(outdir, '{}.labels.npy'.format(basename)), labels)
+      # np.save(os.path.join(outdir, '{}.overlap_feats.npy'.format(basename)), overlap_feats)
 
-    # np.save(os.path.join(outdir, '{}.q_overlap_indices.npy'.format(basename)), q_overlap_indices)
-    # np.save(os.path.join(outdir, '{}.a_overlap_indices.npy'.format(basename)), a_overlap_indices)
+      # np.save(os.path.join(outdir, '{}.q_overlap_indices.npy'.format(basename)), q_overlap_indices)
+      # np.save(os.path.join(outdir, '{}.a_overlap_indices.npy'.format(basename)), a_overlap_indices)

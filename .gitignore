@@ -1,3 +1,8 @@
+# Get this data from https://github.com/aseveryn/deep-qa or 
+# https://github.com/shashankg7/Keras-CNN-QA
+jacana-qa-naacl2013-data-results/
+output/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

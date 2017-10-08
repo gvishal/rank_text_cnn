@@ -6,6 +6,7 @@ import sys
 sys.path.insert(0, '../')
 from rank_text_cnn.code import utils
 
+
 def test_map():
     qids = np.array([1, 2, 3])
     labels = np.array([1, 0, 1])
@@ -13,7 +14,7 @@ def test_map():
 
     # Answer should be (1/1 + 0 + 1/3)/2 = 0.667
     expected_answer = round((1/1 + 0 + 1.0/3)/2, 3)
-    map_score = round(utils.map(qids, labels, preds), 3)
+    map_score = round(utils.map_score(qids, labels, preds), 3)
     print expected_answer, map_score
     assert expected_answer == map_score
 

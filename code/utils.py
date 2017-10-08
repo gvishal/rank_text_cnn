@@ -2,7 +2,8 @@
 '''Utils'''
 from collections import defaultdict
 
-def map(qids, labels, preds):
+
+def map_score(qids, labels, preds):
     '''Method that computes Mean Average Precision for the given input.
     All inputs are numpy arrays.
     preds: Values between 0 and 1, due to softmax. Round off values to 0 or 1.
@@ -12,7 +13,9 @@ def map(qids, labels, preds):
     eg. score = 0.6 ~ 1, label = 1: correct
         score = 0.2 ~ 0, label = 0: correct
     See tests.utils_test.py for more
-
+    
+    Original Code:
+    https://github.com/aseveryn/deep-qa/blob/master/run_nnet.py#L403
     Read more about it:
     https://makarandtapaswi.wordpress.com/2012/07/02/intuition-behind-average-precision-and-map/
     http://fastml.com/what-you-wanted-to-know-about-mean-average-precision/
@@ -20,9 +23,7 @@ def map(qids, labels, preds):
 
     qid_2_cand = defaultdict(list)
     for qid, label, pred in zip(qids, labels, preds):
-        # We are rounding off predicted values which are in range [0, 1]
         assert pred >= 0 and pred <= 1
-        pred = 1 if pred >= 0.5 else 0
         qid_2_cand[qid].append((pred, label))
 
     avg_precs = []
@@ -31,6 +32,8 @@ def map(qids, labels, preds):
         correct_cnt = 0
 
         for i, (score, label) in enumerate(sorted(cands, reverse=True), 1):
+            # We are rounding off predicted values which are in range [0, 1]
+            score = 1 if score >= 0.5 else 0
             if score == label:
                 correct_cnt += 1
                 avg_prec += float(correct_cnt) / i

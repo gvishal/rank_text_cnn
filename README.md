@@ -29,8 +29,10 @@ Reported in paper for `qg-emnlp07-data`
 2. Used `parse.py` from the implementations in Other Implementations section.
 3. Implemented `map_score()` using `sklearn`.
 
-# PS
+# PS / Observations
 1. Accuracy printed while training does not have any relevance.
+1. Tensorflow(not compiled to use SS4.1 et. al) is faster than theano on same hardware (77m vs 134m CPU time on E5-2680). But, it gave lower scores over the same epochs. Need to dump optimal weights and test on that.
+1. And almost identical timings on i7-5820K with TF compiled to use low level optimizations. Theano didn't use lblas here.
 
 # Issues / TODO
 1. `sklearn.metrics.average_precision_score()` gives a division by zero error and is thus unable to compute the scores, return `nan`.

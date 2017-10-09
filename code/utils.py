@@ -1,22 +1,30 @@
 # coding: utf-8
 '''Utils'''
 from collections import defaultdict
+import json
+import numpy as np
+from sklearn import metrics
+
+
+def ap_score(cands):
+    '''cands: (predicted_scores, actual_labels)
+    Using: http://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html
+    It uses roc-auc and then computes avg-prec.
+    '''
+    y_true, y_pred = map(list, zip(*cands))
+    # print y_true, y_pred
+    return metrics.average_precision_score(y_true, y_pred)
 
 
 def map_score(qids, labels, preds):
     '''Method that computes Mean Average Precision for the given input.
-    All inputs are numpy arrays.
-    preds: Values between 0 and 1, due to softmax. Round off values to 0 or 1.
 
-    We count a prediction as correct if its predicted score is same as its 
-    label. 
-    eg. score = 0.6 ~ 1, label = 1: correct
-        score = 0.2 ~ 0, label = 0: correct
-    See tests.utils_test.py for more
-    
+    Authors use their custom method to train. Actual benchmark is done using TREC eval.
+
     Original Code:
     https://github.com/aseveryn/deep-qa/blob/master/run_nnet.py#L403
     Read more about it:
+    https://github.com/scikit-learn/scikit-learn/blob/ef5cb84a/sklearn/metrics/ranking.py#L107
     https://makarandtapaswi.wordpress.com/2012/07/02/intuition-behind-average-precision-and-map/
     http://fastml.com/what-you-wanted-to-know-about-mean-average-precision/
     '''
@@ -24,21 +32,19 @@ def map_score(qids, labels, preds):
     qid_2_cand = defaultdict(list)
     for qid, label, pred in zip(qids, labels, preds):
         assert pred >= 0 and pred <= 1
-        qid_2_cand[qid].append((pred, label))
+        qid_2_cand[qid].append((label, pred))
 
     avg_precs = []
     for qid, cands in qid_2_cand.iteritems():
-        avg_prec = 0
-        correct_cnt = 0
+        # get average prec score for all cands of qid
+        # Bug here: I had changed tuple order, and ended up sorting by original
+        # label, instead of score.
+        avg_prec = ap_score(sorted(cands, reverse=True, key=lambda x: x[1]))
+        avg_precs.append(avg_prec)
 
-        for i, (score, label) in enumerate(sorted(cands, reverse=True), 1):
-            # We are rounding off predicted values which are in range [0, 1]
-            score = 1 if score >= 0.5 else 0
-            if score == label:
-                correct_cnt += 1
-                avg_prec += float(correct_cnt) / i
-        # adding small value to prevent div by zero
-        avg_precs.append(avg_prec / (correct_cnt + 1e-6))
+    return sum(avg_precs) / len(avg_precs)
 
-    map_score = sum(avg_precs) / len(avg_precs)
-    return map_score
+
+def load_json(file_path):
+    '''Huh?'''
+    return json.load(open(file_path, 'r'))

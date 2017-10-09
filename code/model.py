@@ -1,10 +1,11 @@
-# coding: utf-8
 '''Model utils'''
+import os, sys
+
 import gensim
 from gensim.models.keyedvectors import KeyedVectors
 
 import keras
-from keras import regularizers
+from keras import optimizers, regularizers
 from keras.layers import Dense, Dropout
 from keras.layers import Input, Embedding
 from keras.layers import Conv1D, GlobalMaxPooling1D, MaxPooling1D
@@ -12,12 +13,10 @@ from keras.layers.merge import Concatenate, Dot
 from keras.models import Sequential, Model
 
 import numpy as np
+import time
 
-# embed_dim = 50
-# max_ques_len = 20
-# vocab_size = 1000
-# max_ans_len = 40
-# embedding = np.random.rand(1000, 50)
+sys.path.insert(0, '../')
+from rank_text_cnn import config
 
 
 def load_embeddings(embedding_file, vocab):
@@ -26,33 +25,50 @@ def load_embeddings(embedding_file, vocab):
             dim: dimension of the embeddings
             rand_count: number of words not in trained embedding
     '''
+    print 'Loading word vectors...'
+    start = time.time()
+    outdir = config.OUTPUT_PATH
+
+    try:
+        print 'Trying to load from npy dump.'
+        embedding = np.load(os.path.join(outdir, 'embedding.npy'))
+        return embedding, embedding.shape[1], 'NA'
+    except:
+        print 'Load from dump failed, reading from binary.'
+
     word_vectors = KeyedVectors.load_word2vec_format(
         embedding_file, binary=True)
+    print 'Loaded in %f seconds' %(time.time() - start)
     # Need to use the word vectors to make embeddings matrix
     # Get dimension for any word embedding
     dim = word_vectors['apple'].shape[0]
     
     # Initialize an embedding of |vocab| x dim
     # word -> embedding
-    embedding = np.zeroes((len(vocab, dim)))
+    embedding = np.zeros((len(vocab), dim))
     # Take random values
     rand_vec = np.random.uniform(-0.25, 0.25, dim)
     # Count of words not having representations in our embedding file
     rand_count = 0
 
     for key, value in vocab.iteritems():
-        embedding[value] = word_vectors.get(key, rand_count)
-        if key not in word_vectors:
+        try:
+            embedding[value] = word_vectors[key]
+        except:
+            embedding[value] = rand_vec
             rand_count += 1
 
+    print 'Total time for loading embedding: %f seconds' %(time.time() - start)
     print 'Number of words not in trained embedding: %d' %(rand_count)
+
+    np.save(os.path.join(outdir, 'embedding.npy'), embedding)
     return embedding, dim, rand_count
 
 
 def cnn_model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
     '''Neural architecture as mentioned in the original paper.'''
     # Prepare layers for Question
-    input_q = Input(shape=(max_ques_len,))
+    input_q = Input(shape=(max_ques_len,), name='ques_input')
     # print input_q.name
     # we will load embedding values from corpus here.
     embed_q = Embedding(input_dim=vocab_size, output_dim=embed_dim,
@@ -62,11 +78,10 @@ def cnn_model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
     # the dimensions will not reduce
     conv_q = Conv1D(filters=100, kernel_size=5, strides=1, padding='same',
                     activation='relu',
-                    kernel_regularizer=regularizers.l2(1e-5))(embed_q)
+                    kernel_regularizer=regularizers.l2(1e-5),
+                    name='ques_conv')(embed_q)
     # also referenced as x(q) in paper
     pool_q = GlobalMaxPooling1D()(conv_q)
-
-
 
     # Prepare layers for Answer
     input_a = Input(shape=(max_ans_len,))
@@ -79,20 +94,14 @@ def cnn_model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
                     kernel_regularizer=regularizers.l2(1e-5))(embed_a)
     pool_a = GlobalMaxPooling1D()(conv_a)
 
-
-
     # M or the similarity layer here
     # Paper: x_d_dash = M.x_d
     x_a = Dense(100, use_bias=False,
                 kernel_regularizer=regularizers.l2(1e-4))(pool_a)
     sim = Dot(axes=-1)([pool_q, x_a])
 
-
-
     # Combine Question, sim and Answer pooled outputs.
     join_layer = keras.layers.concatenate([pool_q, sim, pool_a])
-
-
 
     # Using relu here too? Not mentioned in the paper.
     hidden_layer = Dense(201,
@@ -100,14 +109,14 @@ def cnn_model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
     hidden_layer = Dropout(0.5)(hidden_layer)
 
     # Final Softmax Layer, add regularizer here too?
-    softmax = Dense(1, activation='softmax')(hidden_layer)
-
-
+    softmax = Dense(1, activation='sigmoid')(hidden_layer)
 
     model = Model(inputs=[input_q, input_a], outputs=softmax)
     print model.summary()
 
-    model.compile(optimizer='Adadelta',
+    adadelta = optimizers.Adadelta(rho=0.95, epsilon=1e-06)
+    # TODO: Use map_score as a metric here?
+    model.compile(optimizer=adadelta,
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 

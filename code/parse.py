@@ -161,7 +161,7 @@ def gen_vocab(data):
                vocab_idx += 1
 
   vocab['UNK'] = len(vocab)
-  f = open(config.OUTPUT_PATH + 'vocab.json', 'w')
+  f = open(config.VOCAB_PATH, 'w')
   json.dump(vocab, f)
   return vocab
 

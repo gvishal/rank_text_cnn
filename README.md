@@ -34,7 +34,7 @@ Reported in paper for `qg-emnlp07-data`
 
 # Issues / TODO
 1. `sklearn.metrics.average_precision_score()` gives a division by zero error and is thus unable to compute the scores, return `nan`.
-1. Add early stopping and store parameters with best MAP score on dev set (as per the paper).
+1. Add early stopping and store parameters with best MAP score on dev set (as per the paper). This will increase the scores a fair bit (The last iteration had a high loss, as compared to some of the previous ones.).
 1. Add dropout at a few other places.
 1. Use word overlap features.
 

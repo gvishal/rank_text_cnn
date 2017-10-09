@@ -12,10 +12,10 @@ This code is an independent implementation of Learning to Rank Short Text Pairs 
 For the provided data `jacana-qa-naacl2013-..`
 
 
-|  Metric |  Test Set | Score  |
+|  Metric |  Training Set | Score  |
 |---|---|---|
-|map|TRAIN-ALL|0.6675|
-|recip_rank(mrr)|TRAIN-ALL|0.7178|
+|map|TRAIN-ALL|~~0.6675~~ 0.6760|
+|recip_rank(mrr)|TRAIN-ALL|~~0.7178~~ 0.7387|
 
 Reported in paper for `qg-emnlp07-data` 
 

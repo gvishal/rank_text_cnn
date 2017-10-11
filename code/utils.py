@@ -13,7 +13,14 @@ def ap_score(cands):
     '''
     y_true, y_pred = map(list, zip(*cands))
     # print y_true, y_pred
-    return metrics.average_precision_score(y_true, y_pred)
+    count = 0
+    score = 0
+    for i, (y_true, y_pred) in enumerate(cands):
+        if y_true > 0:
+            count += 1.0
+            score += count / (i + 1.0)
+    return score / (count + 1e-6)
+    # return metrics.average_precision_score(y_true, y_pred)
 
 
 def map_score(qids, labels, preds):
@@ -37,8 +44,6 @@ def map_score(qids, labels, preds):
     avg_precs = []
     for qid, cands in qid_2_cand.iteritems():
         # get average prec score for all cands of qid
-        # Bug here: I had changed tuple order, and ended up sorting by original
-        # label, instead of score.
         avg_prec = ap_score(sorted(cands, reverse=True, key=lambda x: x[1]))
         avg_precs.append(avg_prec)
 

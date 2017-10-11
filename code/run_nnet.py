@@ -1,5 +1,6 @@
 '''Main file to run the setup.'''
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = ''
 import sys
 
 import numpy as np
@@ -78,18 +79,27 @@ def train_model(mode):
             sys.stdout.write('\r Loss, Acc: %f %f' %(loss, acc))
             sys.stdout.flush()
 
+        def testing_things():
+            ques_conv = cnn_model.get_layer('ques_conv')
+            print ques_conv
+            print ques_conv.input_shape, ques_conv.output_shape
+            ques_pool = cnn_model.get_layer('ques_pool')
+            print ques_pool
+            print ques_pool.input_shape, ques_pool.output_shape
+        # testing_things()
+
         # Predict result on dev set
         y_pred = cnn_model.predict([q_dev, a_dev])
         # print y_pred
         # print y_pred.shape, np.where(y_pred == 0)[0].shape
-        dev_acc = sklearn.metrics.roc_auc_score(y_dev, y_pred) * 100
+        dev_acc = sklearn.metrics.roc_auc_score(y_dev, y_pred)
         # TODO: add checking if best accuracy has been reached
         dev_map = utils.map_score(qids_dev, y_test, y_pred)
-        print 'Dev AUC: %f, MAP: %f' %(dev_acc, dev_map)
+        print ' Dev AUC: %f, MAP: %f' %(dev_acc, dev_map)
 
     y_pred = cnn_model.predict([q_test, a_test])
-    test_acc = sklearn.metrics.roc_auc_score(y_test, y_pred) * 100
-    test_map = utils.map_score(qids_test, y_test, y_pred) * 100
+    test_acc = sklearn.metrics.roc_auc_score(y_test, y_pred)
+    test_map = utils.map_score(qids_test, y_test, y_pred)
     print 'Test AUC: %f, MAP: %f' %(test_acc, test_map)
 
     # Dump data for trec eval
@@ -116,7 +126,7 @@ def train_model(mode):
 
 
 def main():
-    train_model(mode='TRAIN-ALL')
+    train_model(mode='TRAIN')
 
 
 if __name__ == '__main__':

@@ -52,6 +52,7 @@ def load_embeddings(embedding_file, vocab):
     rand_count = 0
 
     for key, value in vocab.iteritems():
+        # Map word idx to its embedding vector.
         try:
             embedding[value] = word_vectors[key]
         except:
@@ -81,7 +82,7 @@ def cnn_model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
                     kernel_regularizer=regularizers.l2(1e-5),
                     name='ques_conv')(embed_q)
     # also referenced as x(q) in paper
-    pool_q = GlobalMaxPooling1D()(conv_q)
+    pool_q = GlobalMaxPooling1D(name='ques_pool')(conv_q)
 
     # Prepare layers for Answer
     input_a = Input(shape=(max_ans_len,))

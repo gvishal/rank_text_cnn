@@ -5,7 +5,7 @@ This code is an independent implementation of Learning to Rank Short Text Pairs 
 
 # Results
 1. Evaluation done using TREC-Eval and without word overlap features.
-2. Trained the model for 15 epochs, setting more or less the same parameters as mentioned in the paper.
+2. Trained the model for 20 epochs, setting the same parameters as mentioned in the paper.
 3. Used only a single dropout layer, after the Dense layer.
 4. Used `sigmoid` as the activation function, instead of `softmax` (mentioned in the paper).
 

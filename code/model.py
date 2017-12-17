@@ -66,8 +66,15 @@ def load_embeddings(embedding_file, vocab):
     return embedding, dim, rand_count
 
 
-def cnn_model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
+def cnn_model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding,
+              addit_feat_len, no_conv_filters=100):
     '''Neural architecture as mentioned in the original paper.'''
+    print 'Preparing model with the following parameters: '
+    print '''embed_dim, max_ques_len, max_ans_len, vocab_size, embedding,
+              addit_feat_len, no_conv_filters: ''',
+    print(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding.shape, 
+          addit_feat_len, no_conv_filters)
+
     # Prepare layers for Question
     input_q = Input(shape=(max_ques_len,), name='ques_input')
     # print input_q.name
@@ -77,7 +84,7 @@ def cnn_model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
                         weights=[embedding], trainable=False)(input_q)
     # Padding means, if input size is 32x32, output will also be 32x32, i.e,
     # the dimensions will not reduce
-    conv_q = Conv1D(filters=100, kernel_size=5, strides=1, padding='same',
+    conv_q = Conv1D(filters=no_conv_filters, kernel_size=5, strides=1, padding='same',
                     activation='relu',
                     kernel_regularizer=regularizers.l2(1e-5),
                     name='ques_conv')(embed_q)
@@ -90,29 +97,35 @@ def cnn_model(embed_dim, max_ques_len, max_ans_len, vocab_size, embedding):
     embed_a = Embedding(input_dim=vocab_size, output_dim=embed_dim,
                         input_length=max_ans_len,
                         weights=[embedding], trainable=False)(input_a)
-    conv_a = Conv1D(filters=100, kernel_size=5, strides=1, padding='same',
+    conv_a = Conv1D(filters=no_conv_filters, kernel_size=5, strides=1, padding='same',
                     activation='relu',
                     kernel_regularizer=regularizers.l2(1e-5))(embed_a)
     pool_a = GlobalMaxPooling1D()(conv_a)
 
     # M or the similarity layer here
     # Paper: x_d_dash = M.x_d
-    x_a = Dense(100, use_bias=False,
+    x_a = Dense(no_conv_filters, use_bias=False,
                 kernel_regularizer=regularizers.l2(1e-4))(pool_a)
     sim = Dot(axes=-1)([pool_q, x_a])
 
-    # Combine Question, sim and Answer pooled outputs.
-    join_layer = keras.layers.concatenate([pool_q, sim, pool_a])
+    # Input additional features.
+    input_addn_feat = Input(shape=(addit_feat_len, ), name='input_addn_feat')
+    
+    # Combine Question, sim, Answer pooled outputs and additional input features
+    join_layer = keras.layers.concatenate([pool_q, sim, pool_a,
+                                            input_addn_feat])
 
+    # hidden_units = join_layer.output_shape[1]
+    hidden_units = no_conv_filters + 1 + no_conv_filters + addit_feat_len
     # Using relu here too? Not mentioned in the paper.
-    hidden_layer = Dense(201,
+    hidden_layer = Dense(hidden_units,
                          kernel_regularizer=regularizers.l2(1e-4))(join_layer)
     hidden_layer = Dropout(0.5)(hidden_layer)
 
     # Final Softmax Layer, add regularizer here too?
     softmax = Dense(1, activation='sigmoid')(hidden_layer)
 
-    model = Model(inputs=[input_q, input_a], outputs=softmax)
+    model = Model(inputs=[input_q, input_a, input_addn_feat], outputs=softmax)
     print model.summary()
 
     adadelta = optimizers.Adadelta(rho=0.95, epsilon=1e-06)
